@@ -19,7 +19,7 @@ def github_api_request(url, headers):
         if response.status_code == 403 and 'X-RateLimit-Remaining' in response.headers and response.headers['X-RateLimit-Remaining'] == '0':
             reset_time = int(response.headers['X-RateLimit-Reset'])
             sleep_time = max(0, reset_time - int(time.time()))
-            print(f"Rate limit exceeded. Sleeping for {sleep_time} seconds.")
+            print(f"Rate limit exceeded. Sleeping for {sleep_time} seconds.", file=sys.stderr)
             time.sleep(sleep_time)
         else:
             response.raise_for_status()
@@ -43,7 +43,7 @@ def download_file(url):
         return response.content
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
-            print(f"File not found: {url}")
+            print(f"File not found: {url}", file=sys.stderr)
         else:
             raise
     return None
@@ -90,23 +90,7 @@ def generate_markdown_report(findings):
         report_lines.append(f"| {repo} | {path} |")
     return "\n".join(report_lines)
 
-# Main function
-def main():
-    args = parse_arguments()
-    org_name = args.org
-    ioc_file_path = args.iocs
-    repo_type = args.repo_type
-    debug = args.debug
-
-    # Read the IOC file
-    with open(ioc_file_path, 'r') as file:
-        ioc_data = [line.strip().split() for line in file.readlines() if line.strip() and not line.startswith('#')]
-
-    # Check if the IOC data is empty
-    if not ioc_data:
-        print("Error: The IOCs file is empty.", file=sys.stderr)
-        return
-
+def generate_findings(ioc_data, org_name, repo_type, debug):
     findings = []
     # Main logic
     print(f"Searching in GitHub organization {org_name} with repo type {repo_type or 'all'}...", file=sys.stderr)
@@ -128,8 +112,28 @@ def main():
                 print(f"Match found for {filename}: {file_url}", file=sys.stderr)
                 findings.append((repo_name, file_info['path']))
             else:
-                if debug:
-                    print(f"Hash mismatch for {filename}: {file_url}", file=sys.stderr)
+                print(f"Hash mismatch for {filename}: {file_url}", file=sys.stderr)
+    return findings
+
+# Main function
+def main():
+    args = parse_arguments()
+    org_name = args.org
+    ioc_file_path = args.iocs
+    repo_type = args.repo_type
+    debug = args.debug
+
+    # Read the IOC file
+    with open(ioc_file_path, 'r') as file:
+        ioc_data = [line.strip().split() for line in file.readlines() if line.strip() and not line.startswith('#')]
+
+    # Check if the IOC data is empty
+    if not ioc_data:
+        print("Error: The IOCs file is empty.", file=sys.stderr)
+        return
+
+    # Generate findings
+    findings = generate_findings(ioc_data, org_name, repo_type, debug)
 
     # Indicate that the scan has finished before printing the markdown report
     print("Scan finished.", file=sys.stderr)
@@ -140,7 +144,7 @@ def main():
 
     # Generate and print markdown report
     markdown_report = generate_markdown_report(findings)
-    print("Markdown report generated!", file=sys.sustderr)
+    print("Markdown report generated!", file=sys.stderr)
     print(markdown_report, file=sys.stdout)
 
 if __name__ == "__main__":
