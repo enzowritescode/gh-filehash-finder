@@ -1,0 +1,2 @@
+# https://socket.dev/blog/tinycolor-supply-chain-attack-affects-40-packages
+bundle.js 46faab8ab153fae6e80e7cca38eab363075bb524edd79e42269217a083628f09
