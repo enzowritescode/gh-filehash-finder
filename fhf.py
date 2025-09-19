@@ -60,9 +60,12 @@ def get_default_branch(repo_full_name):
 def parse_arguments():
     parser = argparse.ArgumentParser(description='File Hash Finder')
     parser.add_argument('--org', required=True, help='GitHub organization name')
-    parser.add_argument('--iocs', required=True, help='Path to the IOC file')
-    parser.add_argument('--repo-type', choices=['public', 'private'], help='Type of repositories to scan (public or private)')
+    parser.add_argument('--iocs', help='Path to the IOC file')
+    parser.add_argument('--repo-type', choices=['public', 'private'], help='Type of repositories to scan (public or private). Omit for all repositories.')
+    parser.add_argument('--file-name', help='Name of the file to search for')
+    parser.add_argument('--hash', help='Expected SHA256 hash of the file')
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
+    parser.add_argument('--outfile', help='Path to the output markdown file')
     return parser.parse_args()
 
 # Update search_github_files to use the correct branch or reference
@@ -115,37 +118,47 @@ def generate_findings(ioc_data, org_name, repo_type, debug):
                 print(f"Hash mismatch for {filename}: {file_url}", file=sys.stderr)
     return findings
 
-# Main function
+def read_ioc_file(ioc_file_path):
+    with open(ioc_file_path, 'r') as file:
+        return [line.strip().split() for line in file.readlines() if line.strip() and not line.startswith('#')]
+
+
+def validate_arguments(args):
+    if not args.iocs and (not args.file_name or not args.hash):
+        print("Error: Either --iocs or both --file-name and --hash must be provided.", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     args = parse_arguments()
+    validate_arguments(args)
     org_name = args.org
-    ioc_file_path = args.iocs
     repo_type = args.repo_type
     debug = args.debug
 
-    # Read the IOC file
-    with open(ioc_file_path, 'r') as file:
-        ioc_data = [line.strip().split() for line in file.readlines() if line.strip() and not line.startswith('#')]
+    ioc_data = None
+    if args.iocs:
+        ioc_data = read_ioc_file(args.iocs)
+        if not ioc_data:
+            print("Error: The IOCs file is empty.", file=sys.stderr)
+            return
+    else:
+        ioc_data = [(args.file_name, args.hash)]
 
-    # Check if the IOC data is empty
-    if not ioc_data:
-        print("Error: The IOCs file is empty.", file=sys.stderr)
-        return
-
-    # Generate findings
     findings = generate_findings(ioc_data, org_name, repo_type, debug)
 
-    # Indicate that the scan has finished before printing the markdown report
     print("Scan finished.", file=sys.stderr)
-    # Check if there are no findings
     if not findings:
-        print("No matches found!", file=sys.stderr)
-        return
+        markdown_report = "No matches found!"
+    else:
+        markdown_report = generate_markdown_report(findings)
 
-    # Generate and print markdown report
-    markdown_report = generate_markdown_report(findings)
-    print("Markdown report generated!", file=sys.stderr)
-    print(markdown_report, file=sys.stdout)
+    if args.outfile:
+        with open(args.outfile, 'w') as outfile:
+            outfile.write(markdown_report)
+        print(f"Markdown report written to {args.outfile}", file=sys.stderr)
+    else:
+        print(markdown_report, file=sys.stdout)
 
 if __name__ == "__main__":
     main()
