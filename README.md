@@ -44,7 +44,7 @@ options:
 ## Example Usage
 
 ```
-# run for all repos and output
+# run for all repos
 python fhf.py --org YOUR_ORG --iocs iocs.txt > report.md
 
 # run separate scans for public/private repos
