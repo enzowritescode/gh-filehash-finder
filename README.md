@@ -1,10 +1,11 @@
 # GitHub File Hash Finder
 
-Scan for specific files (filename/hash) in your GitHub org
+Scan for specific files (filename/hash) in your GitHub organization. This tool is specifically designed to search for known Indicators of Compromise (IoCs) by identifying files with specific filenames and hashes, such as the `bundle.js` file from the Shai Hulud supply chain attack.
 
 ## Prerequisites
 
-The script assumes you have a GitHub token in your environment, either `GH_TOKEN` or `GITHUB_TOKEN`
+- A GitHub token set in your environment, either `GH_TOKEN` or `GITHUB_TOKEN`.
+- Python 3.9 or higher.
 
 ## Setup
 
@@ -16,7 +17,7 @@ cd gh-filehash-finder
 # create python virtual env
 python3 -m venv venv
 source venv/bin/activate
-pip install requests
+pip install -r requirements.txt
 ```
 
 ## Command-line Options
@@ -43,7 +44,7 @@ options:
 ## Example Usage
 
 ```
-# run for all repos
+# run for all repos and output
 python fhf.py --org YOUR_ORG --iocs iocs.txt > report.md
 
 # run separate scans for public/private repos
